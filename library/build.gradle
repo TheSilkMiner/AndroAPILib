@@ -1,0 +1,107 @@
+plugins {
+    id 'org.jetbrains.dokka' version '0.9.17'
+    id 'net.minecrell.licenser' version '0.4.1'
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+apply plugin: 'com.github.dcendents.android-maven'
+
+group = 'net.thesilkminer.android.lib'
+
+android {
+    compileSdkVersion 28
+    defaultConfig {
+        minSdkVersion 14
+        targetSdkVersion 28
+        versionCode 1
+        versionName "1.0.0-0"
+        consumerProguardFiles 'proguard-rules.pro'
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+}
+
+dependencies {
+    /* ========== NON-GRADLE DEPENDENCIES ========== */
+
+    // Custom-developed Libraries
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+
+    /* ========== KOTLIN ========== */
+
+    // Kotlin Standard Library
+    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk7', version: "$kotlin_version"
+
+    /* ========== OTHER LIBRARIES ========== */
+
+    // Jetbrains Anko -> Anko Commons
+    implementation group: 'org.jetbrains.anko', name: 'anko-commons', version: "$anko_version"
+
+    /* ========== TEST ONLY DEPENDENCIES ========== */
+
+    // JUnit -> JUnit
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
+
+    // AndroidX Test -> AndroidX Test Library
+    androidTestImplementation group: 'androidx.test', name: 'runner', version: '1.1.0'
+
+    // AndroidX Test Espresso -> AndroidX Test Library
+    androidTestImplementation group: 'androidx.test.espresso', name: 'espresso-core', version: '3.1.0'
+}
+
+license {
+    header = project.file('COPYING')
+
+    include '**/*.kt'
+
+    ext {
+        year = Calendar.getInstance().get(Calendar.YEAR)
+        name = 'TheSilkMiner'
+        email = 'thesilkminer <at> outlook <dot> com'
+        app = 'AndroAPILib'
+    }
+
+    ignoreFailures = false
+}
+
+dokka {
+    outputFormat = 'gfm'
+    outputDirectory = "$buildDir/kdoc/md"
+    jdkVersion = 7
+    skipEmptyPackages = false
+}
+
+task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'src'
+}
+
+task dokkaJavadoc(type: org.jetbrains.dokka.gradle.DokkaTask, group: 'documentation') {
+    outputFormat = 'javadoc'
+    outputDirectory = "$buildDir/kdoc/javadoc"
+    jdkVersion = 7
+    reportUndocumented = false
+    skipEmptyPackages = false
+}
+
+task javadocJar(type: Jar, dependsOn: dokkaJavadoc) {
+    classifier = 'javadoc'
+    from "$buildDir/kdoc/javadoc"
+}
+
+artifacts {
+    archives sourcesJar
+    archives javadocJar
+}
+
+assemble.dependsOn licenseCheck
+assemble.dependsOn javadocJar
+
+android.libraryVariants.all {
+    def name = it.buildType.name
+    def task = project.tasks.create "jar${name.capitalize()}", Jar
+    task.dependsOn it.javaCompile
+    task.from it.javaCompile.destinationDir
+    artifacts.add('archives', task)
+}
